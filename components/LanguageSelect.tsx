@@ -2,12 +2,12 @@ import type { FC } from 'react';
 
 interface Props {
   language: string;
-  onChange: (language: string) => void;
+  onChange?: (language: string) => void;
 }
 
 export const LanguageSelect: FC<Props> = ({ language, onChange }) => {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onChange(e.target.value);
+    onChange && onChange(e.target.value);
   };
 
   return (

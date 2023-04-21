@@ -1,136 +1,85 @@
-import { APIKeyInput } from '@/components/APIKeyInput';
 import { CodeBlock } from '@/components/CodeBlock';
 import { LanguageSelect } from '@/components/LanguageSelect';
-import { ModelSelect } from '@/components/ModelSelect';
 import { TextBlock } from '@/components/TextBlock';
-import { OpenAIModel, TranslateBody } from '@/types/types';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import { minify } from 'terser';
 
 export default function Home() {
+  const [blocks, setBlocks] = useState<string[]>([]);
   const [inputLanguage, setInputLanguage] = useState<string>('JavaScript');
-  const [outputLanguage, setOutputLanguage] = useState<string>('Python');
   const [inputCode, setInputCode] = useState<string>('');
-  const [outputCode, setOutputCode] = useState<string>('');
-  const [model, setModel] = useState<OpenAIModel>('gpt-3.5-turbo');
+  const [minifiedCode, setMinifiedCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [hasTranslated, setHasTranslated] = useState<boolean>(false);
-  const [apiKey, setApiKey] = useState<string>('');
-
-  const handleTranslate = async () => {
-    const maxCodeLength = model === 'gpt-3.5-turbo' ? 6000 : 12000;
-
-    if (!apiKey) {
-      alert('Please enter an API key.');
-      return;
+  const [hasProcessed, setHasProcessed] = useState<boolean>(false);
+  const maxCodeLength = 6000;
+  const [doMinifyCode, setDoMinifyCode] = useState(true);
+  const handleMinify = async (input: string) => {
+    try {
+      const result = await minify(input, { module: true, toplevel: true });
+      return result.code || '';
+    } catch (error) {
+      console.error('Failed to minify TypeScript code:', error);
+      return input;
     }
-
-    if (inputLanguage === outputLanguage) {
-      alert('Please select different languages.');
-      return;
+  };
+  const createBlocks = (minifiedInput: string): string[] => {
+    const blocks = [];
+    let currentBlock = '';
+    let currentBlockLength = 0;
+    const words = minifiedInput.split(/\s/);
+    for (const word of words) {
+      if (currentBlockLength + word.length + 1 > maxCodeLength) {
+        blocks.push(currentBlock);
+        currentBlock = '';
+        currentBlockLength = 0;
+      }
+      if (currentBlockLength > 0) {
+        currentBlock += ' ';
+        currentBlockLength += 1;
+      }
+      currentBlock += word;
+      currentBlockLength += word.length;
     }
-
+    if (currentBlockLength > 0) {
+      blocks.push(currentBlock);
+    }
+    return blocks;
+  };
+  const handleProcess = async () => {
     if (!inputCode) {
       alert('Please enter some code.');
       return;
     }
 
-    if (inputCode.length > maxCodeLength) {
-      alert(
-        `Please enter code less than ${maxCodeLength} characters. You are currently at ${inputCode.length} characters.`,
-      );
-      return;
-    }
-
     setLoading(true);
-    setOutputCode('');
+    setMinifiedCode('');
 
-    const controller = new AbortController();
+    const minifiedCode = await handleMinify(inputCode);
 
-    const body: TranslateBody = {
-      inputLanguage,
-      outputLanguage,
-      inputCode,
-      model,
-      apiKey,
-    };
-
-    const response = await fetch('/api/translate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
+    if (minifiedCode.trim().length === 0) {
       setLoading(false);
       alert('Something went wrong.');
       return;
     }
 
-    const data = response.body;
-
-    if (!data) {
-      setLoading(false);
-      alert('Something went wrong.');
-      return;
-    }
-
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    let code = '';
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-
-      code += chunkValue;
-
-      setOutputCode((prevCode) => prevCode + chunkValue);
-    }
-
+    const newBlocks = createBlocks(doMinifyCode ? minifiedCode : inputCode);
+    setBlocks(newBlocks);
+    setMinifiedCode(minifiedCode);
     setLoading(false);
-    setHasTranslated(true);
-    copyToClipboard(code);
-  };
-
-  const copyToClipboard = (text: string) => {
-    const el = document.createElement('textarea');
-    el.value = text;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-  };
-
-  const handleApiKeyChange = (value: string) => {
-    setApiKey(value);
-
-    localStorage.setItem('apiKey', value);
+    setHasProcessed(true);
   };
 
   useEffect(() => {
-    if (hasTranslated) {
-      handleTranslate();
+    if (hasProcessed) {
+      handleProcess().then();
     }
-  }, [outputLanguage]);
-
-  useEffect(() => {
-    const apiKey = localStorage.getItem('apiKey');
-
-    if (apiKey) {
-      setApiKey(apiKey);
-    }
-  }, []);
+  }, [inputLanguage, inputCode]);
 
   return (
     <>
       <Head>
-        <title>Code Translator</title>
+        <title>Code2Block</title>
         <meta
           name="description"
           content="Use AI to translate code from one language to another."
@@ -140,31 +89,60 @@ export default function Home() {
       </Head>
       <div className="flex h-full min-h-screen flex-col items-center bg-[#0E1117] px-4 pb-20 text-neutral-200 sm:px-10">
         <div className="mt-10 flex flex-col items-center justify-center sm:mt-20">
-          <div className="text-4xl font-bold">AI Code Translator</div>
+          <div className="text-4xl font-bold">Code2Block</div>
         </div>
 
-        <div className="mt-6 text-center text-sm">
-          <APIKeyInput apiKey={apiKey} onChange={handleApiKeyChange} />
-        </div>
+        <div className="gap- mt-2 flex flex-col items-center">
+          <label htmlFor="min">
+            Minify Code
+            <input
+              className={'mx-2'}
+              type="checkbox"
+              onChange={(e) => setDoMinifyCode(e.currentTarget.checked)}
+            />
+          </label>
+          <div className={'flex items-center justify-center gap-4'}>
+            <button
+              className="w-[180px] cursor-pointer rounded-md bg-violet-500 px-4 py-2 font-bold hover:bg-violet-600 active:bg-violet-700"
+              onClick={() => handleProcess()}
+              disabled={loading}
+            >
+              {loading
+                ? 'Minifying and Splitting the Code into Blocks...'
+                : 'Create Blocks'}
+            </button>
+            <button
+              className="w-fit box-border cursor-pointer rounded-md border-2 border-violet-500 px-4 py-2 font-bold hover:border-violet-600 active:border-violet-700"
+              onClick={() => {
+                setBlocks([]);
+                setHasProcessed(false);
+                setInputCode('');
+                setMinifiedCode('');
+              }}
+              disabled={loading}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"
+                   stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
 
-        <div className="mt-2 flex items-center space-x-2">
-          <ModelSelect model={model} onChange={(value) => setModel(value)} />
-
-          <button
-            className="w-[140px] cursor-pointer rounded-md bg-violet-500 px-4 py-2 font-bold hover:bg-violet-600 active:bg-violet-700"
-            onClick={() => handleTranslate()}
-            disabled={loading}
-          >
-            {loading ? 'Translating...' : 'Translate'}
-          </button>
+            </button>
+          </div>
         </div>
 
         <div className="mt-2 text-center text-xs">
           {loading
-            ? 'Translating...'
-            : hasTranslated
-            ? 'Output copied to clipboard!'
-            : 'Enter some code and click "Translate"'}
+            ? 'Processing...'
+            : hasProcessed
+            ? 'Process completed!'
+            : 'Enter some code and click "Create Blocks"'}
+        </div>
+        <div className="mt-2 text-center text-xs">
+          {loading
+            ? ''
+            : hasProcessed
+            ? ''
+            : 'Check the box to minify the code before splitting it into blocks.'}
         </div>
 
         <div className="mt-6 flex w-full max-w-[1200px] flex-col justify-between sm:flex-row sm:space-x-4">
@@ -175,9 +153,9 @@ export default function Home() {
               language={inputLanguage}
               onChange={(value) => {
                 setInputLanguage(value);
-                setHasTranslated(false);
+                setHasProcessed(false);
                 setInputCode('');
-                setOutputCode('');
+                setMinifiedCode('');
               }}
             />
 
@@ -187,7 +165,7 @@ export default function Home() {
                 editable={!loading}
                 onChange={(value) => {
                   setInputCode(value);
-                  setHasTranslated(false);
+                  setHasProcessed(false);
                 }}
               />
             ) : (
@@ -196,29 +174,41 @@ export default function Home() {
                 editable={!loading}
                 onChange={(value) => {
                   setInputCode(value);
-                  setHasTranslated(false);
+                  setHasProcessed(false);
                 }}
               />
             )}
           </div>
           <div className="mt-8 flex h-full flex-col justify-center space-y-2 sm:mt-0 sm:w-2/4">
-            <div className="text-center text-xl font-bold">Output</div>
-
-            <LanguageSelect
-              language={outputLanguage}
-              onChange={(value) => {
-                setOutputLanguage(value);
-                setOutputCode('');
-              }}
-            />
-
-            {outputLanguage === 'Natural Language' ? (
-              <TextBlock text={outputCode} />
+            <div className="text-center text-xl font-bold">Minified Code</div>
+            {inputLanguage === 'Natural Language' ? (
+              <TextBlock text={minifiedCode} />
             ) : (
-              <CodeBlock code={outputCode} />
+              <CodeBlock code={minifiedCode} />
             )}
           </div>
         </div>
+        {minifiedCode && blocks.length > 0 && !loading && hasProcessed && (
+          <>
+            <div className="text-center text-xl font-bold">
+              {blocks.length} Blocks Created
+            </div>
+            <div className="mt-6 flex w-full max-w-[1200px] flex-col justify-between sm:flex-row sm:flex-wrap">
+              {blocks.map((block, _i) => (
+                <div
+                  key={_i}
+                  className="h-100 flex flex-col justify-center space-y-2 sm:w-2/4"
+                >
+                  {/*<div className="mt-8 flex h-full flex-col justify-center space-y-2 sm:mt-0 sm:w-2/4">*/}
+                  <div className="text-center text-xl font-bold">
+                    Block Code {_i + 1}
+                  </div>
+                  <TextBlock text={block} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
