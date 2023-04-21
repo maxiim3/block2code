@@ -90,12 +90,12 @@ export default function Home() {
         {/*-- Open Graph / Facebook --*/}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://code2block.vercel.app/" />
-        <meta property="og:title" content="Code2Block" />
+        <meta property="og:title"  content="Code2Block" />
         <meta
           property="og:description"
           content="Code2Block is a web app that splits code into blocks of 6000 chars. Input code, select language, & minify before creating blocks."
         />
-        <meta property="og:image" content="/preview-xl.png" />
+        <meta property="og:image" content="https://res.cloudinary.com/dumtd7dhj/image/upload/v1682092813/preview-xl_sgvnei.png" />
 
         {/*-- Twitter --*/}
         <meta property="twitter:card" content="summary_large_image" />
@@ -105,7 +105,7 @@ export default function Home() {
           property="twitter:description"
           content="Code2Block is a web app that splits code into blocks of 6000 chars. Input code, select language, & minify before creating blocks."
         />
-        <meta property="twitter:image" content="/preview-xl.png" />
+        <meta property="twitter:image" content="https://res.cloudinary.com/dumtd7dhj/image/upload/v1682092812/preview-lg_acaee7.png" />
       </Head>
 
       <div className="flex h-full min-h-screen flex-col items-center bg-[#0E1117] px-4 pb-20 text-neutral-200 sm:px-10">
