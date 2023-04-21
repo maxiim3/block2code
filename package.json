@@ -1,12 +1,18 @@
 {
-  "name": "code-translate",
-  "version": "0.1.0",
+  "name": "code2block",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
+  },
+  "homepage": "https://code2block.vercel.app/",
+  "author": {
+    "email": "maximetamburrini@gmail.com",
+    "name": "Maxime Tamburrini",
+    "url": "https://github.com/maxiim3"
   },
   "dependencies": {
     "@codemirror/legacy-modes": "^6.3.2",
