@@ -2,8 +2,8 @@
 Code2Block is a web application that allows users to minify and split their code into blocks with a maximum character length of 6000. It provides an intuitive interface for users to input their code, choose their input language, and decide whether to minify the code before creating the blocks.
 
 - Preview the App: [Code2Block](https://code2block.vercel.app/)
-- Deployed on Vercel
-- Made with Next.js
+- Deployed on [Vercel](https://vercel.com/)
+- Made with [Next.js](https://nextjs.org/)
 - Made by Maxime Tamburrini | [Maxiim3](https://github.com/maxiim3)
 - UI is inspired by [Mckay Wrigley](https://github.com/mckaywrigley) [from this repo](https://github.com/mckaywrigley/ai-code-translator)
 - I used it as a template. Thanks to him for the great job!
